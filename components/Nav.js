@@ -18,17 +18,11 @@ export default function Nav() {
   const [menuOpen, setMenuOpen] = React.useState(false)
   const [state, setState] = React.useState(false);
 
-     // Updated paths for the navigation
-     const navigation = [
-      { title: "Team", path: "/team" },
-      { title: "Transcripts", path: "/transcripts" },
-      { title: "Files", path: "/files" },
-      { title: "Chat", path: "/chat" },
-  ];
+
 
   return (
     <header className="">
-        <nav className="w-full border-b md:border-0 md:static">
+        <nav className="w-full border-b md:border-0 fixed">
             <div className="items-center px-4 max-w-screen-xl mx-auto md:flex md:px-8 justify-between">
                 <div className="flex justify-between  md:block text-end">
                     <Link href="/" passHref>
@@ -80,18 +74,15 @@ export default function Nav() {
                   </li>
 
                   <li>
-                    <Button>
-                    Signin
-                    </Button>
-                    
-                  </li>
-
-                  <li>
-                  <Button>
-                    Sign Up
-                    </Button>
-                  </li>
-                  
+      <Link href="/sign-in" passHref>
+        <Button>Login</Button>
+      </Link>
+    </li>
+    <li>
+      <Link href="/sign-up" passHref>
+        <Button>Sign Up</Button>
+      </Link>
+    </li>
                 </ul>
                 </div>
             </div>
