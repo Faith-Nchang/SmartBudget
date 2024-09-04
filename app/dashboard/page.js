@@ -1,3 +1,12 @@
+'use client';
+
+import { useEffect, useState } from "react";
+import { doc, collection, writeBatch, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { useRouter } from "next/navigation";
+import { SignedOut, SignedIn, UserButton, useUser } from '@clerk/nextjs';
+import db from "@/firebase";
+
+
 import Link from "next/link"
 import {
   Bell,
@@ -21,25 +30,46 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+
 import { Input } from "@/components/ui/input"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+
+import Sidebar from "@/components/ui/sidebar";
+import MobileNav from "@/components/ui/mobile-nav";
 
 
 export default function Dashboard() {
+  const [categories, setCategories] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const user = useUser();
+
+  const userName = user?.fullName || user?.firstName || user?.lastName || "User";
+
+  // Get all the categories when the page loads
+  useEffect(() => {
+    async function getCategories() {
+      if (!user) {
+        return;
+      }
+      const docRef = doc(collection(db, 'users'), user.id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const collections = docSnap.data().flashcards || [];
+        setCategories(collections);
+        console.log(categories); // Log the correct state
+      } else {
+        await setDoc(docRef, { flashcards: [] });
+      }
+    }
+    getCategories(); // Call the correct function
+  }, [user]);
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <Sidebar />
+      <Sidebar />
       <div className="flex flex-col">
         <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-            <Mobile-Nav />
+          <MobileNav /> {/* Corrected component name */}
           <div className="w-full flex-1">
             <form>
               <div className="relative">
@@ -52,29 +82,17 @@ export default function Dashboard() {
               </div>
             </form>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <CircleUser className="h-5 w-5" />
-                <span className="sr-only">Toggle user menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          
+            
+          <UserButton />
         </header>
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
           <div className="flex items-center">
-            <h1 className="text-lg font-semibold md:text-2xl">Inventory</h1>
+            <h1 className="text-lg font-semibold md:text-2xl">Budget Categories</h1>
           </div>
           <div
-            className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm" x-chunk="dashboard-02-chunk-1"
+            className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm"
+            x-chunk="dashboard-02-chunk-1"
           >
             <div className="flex flex-col items-center gap-1 text-center">
               <h3 className="text-2xl font-bold tracking-tight">
@@ -89,5 +107,5 @@ export default function Dashboard() {
         </main>
       </div>
     </div>
-  )
+  );
 }

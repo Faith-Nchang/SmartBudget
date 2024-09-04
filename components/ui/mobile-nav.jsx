@@ -32,8 +32,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
-export default function  Mobile-Nav
-{
+export default function  MobileNav(){
     return (       <Sheet>
         <SheetTrigger asChild>
           <Button
