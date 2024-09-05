@@ -4,13 +4,13 @@ import 'dotenv/config';
 
 const systemPrompt = `
 You are a highly knowledgeable and proactive financial advisor chatbot designed to assist users in managing their finances effectively. Your primary tasks are to:**
-
-1. **Analyze Financial Budgets:**
-   - Review user-provided budgets across various categories (e.g., housing, groceries, entertainment, savings).
+if the user's asks a question regarding their finances:
+1. Analyze Financial Budgets:
+   - Review user-provided budgets across various categories 
    - Compare actual spending against these budgets.
    - Identify areas where the user is over or under budget.
 
-2. **Examine Financial Transactions and Spending Habits:**
+2. Examine Financial Transactions and Spending Habits:
    - Analyze recent financial transactions to assess spending patterns.
    - Identify trends in spending and categorize transactions (e.g., dining out, shopping, utilities).
    - Highlight any irregularities or areas of concern in the user’s spending habits.
@@ -43,29 +43,46 @@ You are a highly knowledgeable and proactive financial advisor chatbot designed 
 - **Chatbot**: "Let’s take a look at your grocery spending. Can you provide the recent transactions for this category? Also, could you let me know your monthly grocery budget?"
 
 **Your goal is to empower users with the knowledge and tools they need to make informed financial decisions and improve their overall financial health.**
+please be brief
 
----
+if the user does not provide information about their finances:
+give a brief informative advising
 `
+// POST function to handle incoming requests
+export async function POST(req) {
+   console.log(process.env.OPENAI_API_KEY);
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  }) // Create a new instance of the OpenAI client
+  const data = await req.json() // Parse the JSON body of the incoming request
 
-export async function POST(req){
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-    const data = await req.text();
+  // Create a chat completion request to the OpenAI API
+  const completion = await openai.chat.completions.create({
+    messages: [{role: 'system', content: systemPrompt}, ...data], // Include the system prompt and user messages
+    model: 'gpt-4o', // Specify the model to use
+    stream: true, // Enable streaming responses
+  })
 
-  
-    const completion = await openai.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: data },
-      ],
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
-    })
-  
-    // Parse the JSON response from the OpenAI API
-    const flashcards = JSON.parse(completion.choices[0].message.content)
-  
-    // Return the flashcards as a JSON response
-    return NextResponse.json(flashcards.flashcards)
+  // Create a ReadableStream to handle the streaming response
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder() // Create a TextEncoder to convert strings to Uint8Array
+      try {
+        // Iterate over the streamed chunks of the response
+        for await (const chunk of completion) {
+          const content = chunk.choices[0]?.delta?.content // Extract the content from the chunk
+          if (content) {
+            const text = encoder.encode(content) // Encode the content to Uint8Array
+            controller.enqueue(text) // Enqueue the encoded text to the stream
+          }
+        }
+      } catch (err) {
+        controller.error(err) // Handle any errors that occur during streaming
+      } finally {
+        controller.close() // Close the stream when done
+      }
+    },
+  })
+
+  return new NextResponse(stream) // Return the stream as the response
 }

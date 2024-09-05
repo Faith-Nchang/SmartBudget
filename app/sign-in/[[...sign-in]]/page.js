@@ -9,7 +9,8 @@ export default function SignInPage() {
   
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <SignIn  afterSignIn={() => router.push('/dashboard')} />
+          <SignIn path="/sign-in" routing="path" signUpUrl="/sign-up"  afterSignInUrl="/budget-categories" />
+
     </div>
   );
 }

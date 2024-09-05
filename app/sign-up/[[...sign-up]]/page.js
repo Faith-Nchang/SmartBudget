@@ -10,9 +10,8 @@ export default function SignUpPage() {
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <SignUp  
-       afterSignUp={() => router.push('/dashboard')} // Redirect to the dashboard after successful sign-up 
-      />
+        <SignUp path="/sign-up" routing="path" signInUrl="/sign-in" afterSignUpUrl="/budget-categories"  />
+
     </div>
   );
 }
