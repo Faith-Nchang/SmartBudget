@@ -147,7 +147,6 @@ export default function Transactions() {
         setTransaction('');
         setAmount(0.0);
 
-        alert(user.emailAddresses);
         if (!categoryName.trim()) {
           alert('Please enter the category name.');
           return;
