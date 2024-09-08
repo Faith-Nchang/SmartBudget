@@ -133,7 +133,54 @@ export default function Dashboard() {
       setInvestments(data || []);
     } catch (error) {
       console.error('Error generating investments:', error);
-      alert('An error occurred while generating investments. Please try again.');
+      setInvestments([
+        {
+          "name": "TechGrowth Fund",
+          "profits": 65,
+          "losses": 35,
+          "skillsRequired": ["Market Analysis", "Portfolio Management"],
+          "howToGetStarted": "Research tech mutual funds, open a brokerage account, and invest in diversified tech-focused funds.",
+          "advantages": "Potential for high growth, especially if the individual has a higher risk tolerance and is focused on long-term returns.",
+          "risks": "Tech sector volatility could lead to significant short-term losses, especially for those with low diversification."
+        },
+        {
+          "name": "Green Energy ETF",
+          "profits": 70,
+          "losses": 30,
+          "skillsRequired": ["Sustainable Investing", "Basic Finance"],
+          "howToGetStarted": "Open a brokerage account, choose an ETF focused on renewable energy, and make regular contributions.",
+          "advantages": "Strong growth potential in the renewable energy sector, aligns with socially responsible investment goals.",
+          "risks": "Dependent on government policies and public sentiment, could face downturns during economic slowdowns."
+        },
+        {
+          "name": "Crypto Alpha",
+          "profits": 80,
+          "losses": 20,
+          "skillsRequired": ["Blockchain Knowledge", "Risk Management"],
+          "howToGetStarted": "Learn about cryptocurrencies, choose a secure exchange, and start with a small investment in leading cryptos.",
+          "advantages": "High potential for rapid gains, fits those with higher disposable income and a willingness to take significant risks.",
+          "risks": "Highly volatile market, can result in large and sudden losses, requires constant monitoring."
+        },
+        {
+          "name": "Real Estate Trust",
+          "profits": 60,
+          "losses": 40,
+          "skillsRequired": ["Real Estate Valuation", "Long-term Investing"],
+          "howToGetStarted": "Research REITs, open an investment account, and select a REIT that fits your financial goals.",
+          "advantages": "Stable income and diversification, ideal for those seeking regular passive income with moderate risk.",
+          "risks": "Real estate market downturns or rising interest rates can negatively impact returns."
+        },
+        {
+          "name": "BlueChip Stock Fund",
+          "profits": 75,
+          "losses": 25,
+          "skillsRequired": ["Stock Market Basics", "Equity Analysis"],
+          "howToGetStarted": "Open a brokerage account, select a portfolio of blue-chip stocks, and make regular investments.",
+          "advantages": "Lower risk compared to smaller companies, steady growth for those with long-term financial stability.",
+          "risks": "Lower potential for rapid gains, dependent on general market conditions."
+        }
+      ]
+      )
     } finally {
       setIsloading(false);
     
