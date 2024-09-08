@@ -1,15 +1,17 @@
 'use client';
 
+import { useUser } from "@clerk/nextjs";
+
 import { useEffect, useState } from "react";
 import { doc, collection, writeBatch, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
-import { UserButton, useUser } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
 import db from "@/firebase";
 import {
   Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -46,49 +48,79 @@ const mockCategories = [
 ];
 
 export default function BudgetCategories() {
-  const [categories, setCategories] = useState(mockCategories);
+  const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const [totalBudget, setTotalBudget] = useState(0.0);
   const [totalCategories, setTotalCategories] = useState(0);
-  const user = useUser();
+  const { isLoaded, isSignedIn, user } = useUser()
 
   const getTransactions = (categoryId) => {
     router.push(`/transactions?id=${categoryId}`);
   };
 
   // Add a new category
-  const addCategory = async (userId, categoryName) => {
+const addCategory = async (userId, categoryName) => {
 
-    if (!categoryName.trim()) {
-      alert('Please enter the category name.');
-      return;
+  if (!categoryName.trim()) {
+    alert('Please enter the category name.');
+    return;
+  }
+  if (!userId) {
+    console.error('User ID is not defined.');
+    return;
+  }
+
+  try {
+    const batch = writeBatch(db);
+    const userDocRef = doc(collection(db, 'users'), userId);
+
+    const docSnap = await getDoc(userDocRef);
+
+    // Check if the user document exists
+    if (docSnap.exists()) {
+      const categoryCollection = docSnap.data().budgetCategories || [];
+
+      // Check if the category already exists in Firebase
+      if (categoryCollection.find((category) => category.name === categoryName)) {
+        alert("You already have an existing budget category with that name");
+        return;
+      } else {
+        // Add the new category to the existing array in Firestore
+        categoryCollection.push({ name: categoryName, total: 0, createdAt: new Date() });
+        batch.set(userDocRef, {budgetCategories: categoryCollection }, { merge: true });
+      }
+    } else {
+      // If the document doesn't exist, create a new array with the category
+      const newBudgetCategories = [{ name: categoryName, total: 0, createdAt: new Date() }];
+      batch.set(userDocRef, { budgetCategories: newBudgetCategories });
     }
-    if (!userId) {
-      console.error('User ID is not defined.');
-      return;
-    }
-    try {
-      const batch = writeBatch(db);
-      const userDocRef = doc(db, 'users', userId);
-      const categoriesRef = collection(userDocRef, 'budgetCategories');
-      const categoryDocRef = doc(categoriesRef, categoryName);
-      batch.set(categoryDocRef, {
-        name: categoryName,
-        total: 0,
-        createdAt: new Date(),
-      });
-      await batch.commit();
-      const fetchedCategories = await fetchCategories(user.id);
-      setCategories(fetchedCategories);
-      console.log('Budget category successfully added with ID:', categoryName);
-    } catch (error) {
-      console.error('Error adding budget category:', error);
-    } finally {
-      setCategory('');
-    }
-  };
+
+
+    const columnRef = collection(userDocRef, categoryName);
+    categories.forEach((category) => {
+        const cardDocRef = doc(columnRef);
+        batch.set(cardDocRef, category);
+    });
+
+    // Commit the batch to Firestore
+    await batch.commit();
+
+    // Fetch updated categories and update the UI
+    const fetchedCategories = await fetchCategories(userId);
+    setCategories(fetchedCategories);
+
+    console.log('Budget category successfully added with ID:', categoryName);
+
+  } catch (error) {
+    console.error('Error adding budget category:', error);
+  } finally {
+    setCategory('');
+  }
+};
+
+  
 
   // Fetch all categories
   const fetchCategories = async (userId) => {
@@ -111,28 +143,48 @@ export default function BudgetCategories() {
     }
   };
 
-  // Get all categories when the page loads
+
   useEffect(() => {
     async function getCategories() {
-      if (!user?.id) {
-        console.error('User ID is not available.');
-        return;
+      if (!user) 
+      {
+       return
       }
-      try {
-        const categories = await fetchCategories(user.id);
-        if (categories.length > 0) {
-          setCategories(categories);
-        } else {
-          // Set initial mock data if Firebase data is not available
-          setCategories(mockCategories);
-        }
-      } catch (error) {
-        console.error('Error getting categories:', error);
-        setCategories(mockCategories);
+      const docRef = doc(collection(db, 'users'), user.id)
+      const docSnap = await getDoc(docRef)
+      if (docSnap.exists()) {
+        const budgets = docSnap.data().budgetCategories || []
+        setCategories(budgets)
+        console.log(budgets)
+      } else {
+        await setDoc(docRef, { budgetCategories: [] })
       }
     }
-    getCategories();
-  }, [user]);
+    getCategories()
+  }, [user])
+
+  // // Get all categories when the page loads
+  // useEffect(() => {
+  //   async function getCategories() {
+  //     if (!user?.id) {
+  //       console.error('User ID is not available.');
+  //       return;
+  //     }
+  //     try {
+  //       const categories = await fetchCategories(user.id);
+  //       if (categories.length > 0) {
+  //         setCategories(categories);
+  //       } else {
+
+  //         setCategories(mockCategories);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error getting categories:', error);
+  //       setCategories(mockCategories);
+  //     }
+  //   }
+  //   getCategories();
+  // }, [user]);
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -189,7 +241,7 @@ export default function BudgetCategories() {
               categories.map((cat) => (
                 <Card key={cat.id} className="w-72 h-46 flex flex-col justify-between mb-5 ">
                   <CardHeader>
-                    <CardTitle>{cat.id}</CardTitle>
+                    <CardTitle>{cat.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription>Total: ${cat.total}</CardDescription>

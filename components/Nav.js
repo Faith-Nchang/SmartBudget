@@ -4,6 +4,7 @@ import { Moon, Sun, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 
+import { UserButton, SignedIn, SignedOut } from "@clerk/nextjs"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -73,16 +74,33 @@ export default function Nav() {
                     </DropdownMenu>
                   </li>
 
+                  <SignedOut>
+                        <li>
+                      <Link href="/sign-in" passHref>
+            <Button>Login</Button>
+          </Link>
+        </li>
+        <li>
+          <Link href="/sign-up" passHref>
+            <Button>Sign Up</Button>
+          </Link>
+    </li>
+                  </SignedOut>
+
+                <SignedIn>
                   <li>
-      <Link href="/sign-in" passHref>
-        <Button>Login</Button>
-      </Link>
+                  <UserButton />
+                  </li>
+
+                  <li>
+                  <Link href="/budget-categories" passHref>
+            <Button>Go to dashboard</Button>
+          </Link>
     </li>
-    <li>
-      <Link href="/sign-up" passHref>
-        <Button>Sign Up</Button>
-      </Link>
-    </li>
+                 
+                </SignedIn>
+
+     
                 </ul>
                 </div>
             </div>

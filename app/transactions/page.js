@@ -4,7 +4,8 @@ import { doc, collection, writeBatch, getDoc, updateDoc, increment, getDocs, que
 import db from "@/firebase";
 import { useUser } from "@clerk/nextjs";
 import { SignedOut, SignedIn, UserButton } from '@clerk/nextjs';
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+
 
 import {
     Table,
