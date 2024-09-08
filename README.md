@@ -19,10 +19,10 @@ SmartBudget is a modern budgeting application designed to help users track and m
    - Get real-time insights for more accurate recommendations.
 
 ## Technologies Used
-- **Next.js** for the frontend and server.
+- **Next.js** for the front end and server.
 - **Clerk** for authentication.
-- **Firebase** for data base storage and backend serverless functions.
-- - **open** for financial decision analysis, advising, and investment recommendations.
+- **Firebase** is for database storage and backend serverless functions.
+- **openai** for financial decision analysis, advising, and investment recommendations.
 - **Plaid API** for bank account integration - still working on this.
 - **Tailwind CSS** for styling.
 
