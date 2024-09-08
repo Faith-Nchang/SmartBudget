@@ -37,72 +37,72 @@ export default function Dashboard() {
 
   const userName = user?.fullName || user?.firstName || user?.lastName || "User";
 
-  useEffect(() => {
-    const createLinkToken = async () => {
-      try {
-        const response = await fetch('/api/create-link-token', {
-          method: 'POST',
-        });
+  // useEffect(() => {
+  //   const createLinkToken = async () => {
+  //     try {
+  //       const response = await fetch('/api/create-link-token', {
+  //         method: 'POST',
+  //       });
 
-        if (!response.ok) {
-          throw new Error(response.error);
-        }
+  //       if (!response.ok) {
+  //         throw new Error(response.error);
+  //       }
 
-        const { link_token } = await response.json();
-        setToken(link_token);
-        saveToken(user.id, link_token);
-      } catch (error) {
-        console.log(error);
-      }
-    };
+  //       const { link_token } = await response.json();
+  //       setToken(link_token);
+  //       saveToken(user.id, link_token);
+  //     } catch (error) {
+  //       console.log(error);
+  //     }
+  //   };
 
-    createLinkToken();
-  }, []);
+  //   createLinkToken();
+  // }, []);
 
-  const onSuccess = useCallback(async (publicToken) => {
-    await fetch('/api/exchange-public-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ public_token: publicToken }),
-    });
-    router.push('/budget-categories');
-  }, []);
+  // const onSuccess = useCallback(async (publicToken) => {
+  //   await fetch('/api/exchange-public-token', {
+  //     method: 'POST',
+  //     headers: {
+  //       'Content-Type': 'application/json',
+  //     },
+  //     body: JSON.stringify({ public_token: publicToken }),
+  //   });
+  //   router.push('/budget-categories');
+  // }, []);
 
-  const saveToken = async (userId, token) => {
-    if (!token.trim()) {
-      alert('No token generated');
-      return;
-    }
-    if (!userId) {
-      console.error('User ID is not defined.');
-      return;
-    }
+  // const saveToken = async (userId, token) => {
+  //   if (!token.trim()) {
+  //     alert('No token generated');
+  //     return;
+  //   }
+  //   if (!userId) {
+  //     console.error('User ID is not defined.');
+  //     return;
+  //   }
 
-    try {
-      const batch = writeBatch(db);
-      const userDocRef = doc(collection(db, 'users'), userId);
+  //   try {
+  //     const batch = writeBatch(db);
+  //     const userDocRef = doc(collection(db, 'users'), userId);
 
-      const docSnap = await getDoc(userDocRef);
+  //     const docSnap = await getDoc(userDocRef);
 
-      if (docSnap.exists()) {
-        batch.set(userDocRef, { public_token: token }, { merge: true });
-      } else {
-        batch.set(userDocRef, { public_token: token });
-      }
+  //     if (docSnap.exists()) {
+  //       batch.set(userDocRef, { public_token: token }, { merge: true });
+  //     } else {
+  //       batch.set(userDocRef, { public_token: token });
+  //     }
 
-      await batch.commit();
-      console.log('Token saved successfully');
-    } catch (error) {
-      console.error('Error saving token:', error);
-    }
-  };
+  //     await batch.commit();
+  //     console.log('Token saved successfully');
+  //   } catch (error) {
+  //     console.error('Error saving token:', error);
+  //   }
+  // };
 
-  const { open, ready } = usePlaidLink({
-    token,
-    onSuccess,
-  });
+  // const { open, ready } = usePlaidLink({
+  //   token,
+  //   onSuccess,
+  // });
 
   
 
@@ -192,7 +192,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between flex-wrap">
             <h1 className="text-lg font-semibold md:text-2xl pr-1">Welcome {userName} to SmartBudget</h1>
             <Button onClick={handleSubmit}>Generate investments</Button>
-            <Button className="mt-4" onClick={() => open()} disabled={!ready}>Link bank account</Button>
+            {/* <Button className="mt-4" onClick={() => open()} disabled={!ready}>Link bank account</Button> */}
           </div>
 
           <div className="p-4 space-y-6">
