@@ -77,7 +77,7 @@ export default function MobileNav() {
             Get Financial Advising
           </Link>
           <Link
-            href="/subscriptions"
+            href="/dashboard"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
               pathname === "/subscriptions" ? "bg-muted text-primary" : "text-muted-foreground"
             }`}
@@ -86,7 +86,7 @@ export default function MobileNav() {
             Subscriptions
           </Link>
           <Link
-            href="/bills-and-depts"
+            href="/budget-categories"
             className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary ${
               pathname === "/bills-and-depts" ? "bg-muted text-primary" : "text-muted-foreground"
             }`}

@@ -7,7 +7,7 @@ export default function Footer() {
     <div className="flex flex-col md:flex-row justify-between items-center">
       <div className="text-center md:text-left">
         <h2 className="text-xl font-bold mb-2">SmartBudget</h2>
-        <p className="text-gray-400">© {new Date().getFullYear()} Your Company. All rights reserved.</p>
+        <p className="text-gray-400">© {new Date().getFullYear()} Smart Budget. All rights reserved.</p>
       </div>
       <div className="flex flex-col md:flex-row gap-6 mt-6 md:mt-0">
         <a href="#about" className="hover:text-gray-400">About</a>
