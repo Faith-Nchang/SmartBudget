@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 
 import { useEffect, useState } from "react";
-import { doc, collection, writeBatch, getDoc, setDoc } from 'firebase/firestore';
+import { doc, collection, writeBatch, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { useRouter } from "next/navigation";
 import { UserButton } from '@clerk/nextjs';
 import db from "@/firebase";
@@ -33,19 +33,6 @@ import { Label } from "@/components/ui/label";
 import Sidebar from "@/components/ui/sidebar";
 import MobileNav from "@/components/ui/mobile-nav";
 
-// Mock Data
-const mockCategories = [
-  { id: 'Groceries', total: 0 },
-  { id: 'Utilities', total: 0 },
-  { id: 'Rent/Mortgage', total: 0 },
-  { id: 'Transportation', total: 0 },
-  { id: 'Entertainment', total: 0 },
-  { id: 'Health & Wellness', total: 0 },
-  { id: 'Education', total: 0 },
-  { id: 'Dining Out', total: 0 },
-  { id: 'Savings', total: 0 },
-  { id: 'Miscellaneous', total: 0 }
-];
 
 export default function BudgetCategories() {
   const [categories, setCategories] = useState([]);
@@ -53,15 +40,19 @@ export default function BudgetCategories() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
   const [totalBudget, setTotalBudget] = useState(0.0);
+  const [expenditure, setTotalExpenditure] = useState(0.0);
   const [totalCategories, setTotalCategories] = useState(0);
   const { isLoaded, isSignedIn, user } = useUser()
 
   const getTransactions = (categoryId) => {
+    if(!categoryId) alert('errpr/')
     router.push(`/transactions?id=${categoryId}`);
   };
 
   // Add a new category
 const addCategory = async (userId, categoryName) => {
+  setCategory('');
+  setTotalBudget(0.0);
 
   if (!categoryName.trim()) {
     alert('Please enter the category name.');
@@ -88,7 +79,7 @@ const addCategory = async (userId, categoryName) => {
         return;
       } else {
         // Add the new category to the existing array in Firestore
-        categoryCollection.push({ name: categoryName, total: 0, createdAt: new Date() });
+        categoryCollection.push({ name: categoryName, total: totalBudget, expenditure: expenditure, createdAt: new Date() });
         batch.set(userDocRef, {budgetCategories: categoryCollection }, { merge: true });
       }
     } else {
@@ -98,11 +89,7 @@ const addCategory = async (userId, categoryName) => {
     }
 
 
-    const columnRef = collection(userDocRef, categoryName);
-    categories.forEach((category) => {
-        const cardDocRef = doc(columnRef);
-        batch.set(cardDocRef, category);
-    });
+  
 
     // Commit the batch to Firestore
     await batch.commit();
@@ -163,29 +150,27 @@ const addCategory = async (userId, categoryName) => {
     getCategories()
   }, [user])
 
-  // // Get all categories when the page loads
-  // useEffect(() => {
-  //   async function getCategories() {
-  //     if (!user?.id) {
-  //       console.error('User ID is not available.');
-  //       return;
-  //     }
-  //     try {
-  //       const categories = await fetchCategories(user.id);
-  //       if (categories.length > 0) {
-  //         setCategories(categories);
-  //       } else {
+  // Fetch categories and listen for real-time updates
+  useEffect(() => {
+    if (!user) return;
 
-  //         setCategories(mockCategories);
-  //       }
-  //     } catch (error) {
-  //       console.error('Error getting categories:', error);
-  //       setCategories(mockCategories);
-  //     }
-  //   }
-  //   getCategories();
-  // }, [user]);
+    const userDocRef = doc(db, 'users', user.id);
 
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const updatedCategories = docSnap.data().budgetCategories || [];
+        setCategories(updatedCategories);
+        console.log('Categories updated:', updatedCategories);
+      } else {
+        console.error('No categories found for user.');
+      }
+    });
+
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
+  }, [user]);
+
+  
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <Sidebar />
@@ -229,6 +214,16 @@ const addCategory = async (userId, categoryName) => {
                       placeholder="Enter category name"
                     />
                   </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="budget" className="text-right">Total Budget</Label>
+                    <Input
+                      id="budget"
+                      className="col-span-3"
+                      value={totalBudget}
+                      onChange={(e) => setTotalBudget(parseFloat(e.target.value))} 
+                      placeholder="Enter budget"
+                    />
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" onClick={() => addCategory(user.id, category)}>Add category</Button>
@@ -244,9 +239,19 @@ const addCategory = async (userId, categoryName) => {
                     <CardTitle>{cat.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription>Total: ${cat.total}</CardDescription>
+                    <CardDescription>
+                      <p>Total Budget:<span className="text-green-400 pl-6">${cat.total} </span> </p>
+                      <p>Current expenditures: <span className="text-green-400 pl-6">${cat.expenditure}</span></p>
+                    </CardDescription>
                     <div className="mt-5">
-                      <Button onClick={() => getTransactions(cat.id)}>View Transactions</Button>
+                      <Button className="mb-5" onClick={() => getTransactions(cat.name)}>View Transactions</Button>
+                      {
+                      cat.total > cat.expenditure ? (
+                        <p className="text-1xl"> You have <span className="text-green-400">${cat.total - cat.expenditure}</span> to reach your budget</p>
+                      ) : (
+                        <p className="text-red-400">You are currently at a {cat.total - cat.expenditure} budget. You need to be mindful of your expenditure</p>
+                      )
+                    }
                     </div>
                   </CardContent>
                 </Card>

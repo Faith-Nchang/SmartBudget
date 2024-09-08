@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { doc, collection, writeBatch, getDoc, updateDoc, increment, getDocs, query } from 'firebase/firestore';
 import db from "@/firebase";
 import { useUser } from "@clerk/nextjs";
@@ -17,19 +17,10 @@ import {
 } from "@/components/ui/table"
 
 import {
-    File,
-    Home,
-    LineChart,
-    ListFilter,
+  
     MoreHorizontal,
-    Package,
-    Package2,
-    PanelLeft,
-    PlusCircle,
     Search,
-    Settings,
-    ShoppingCart,
-    Users2,
+    
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +33,17 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
+
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+  } from "@/components/ui/dialog";
+import { Label } from '@radix-ui/react-dropdown-menu';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -53,256 +55,444 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Sidebar from '@/components/ui/sidebar';
+import MobileNav from '@/components/ui/mobile-nav';
 
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@/components/ui/tabs"
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
 import Link from 'next/link';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 export default function Transactions() {
-    const [userTransactions, setUserTransactions] = useState([
-        {
-            id: '1',
-            name: 'Grocery Shopping',
-            amount: 50.75,
-            dateCreated: new Date(),
-        },
-        {
-            id: '2',
-            name: 'Electricity Bill',
-            amount: 120.99,
-            dateCreated: new Date(),
-        },
-        {
-            id: '3',
-            name: 'Subscription Service',
-            amount: 15.00,
-            dateCreated: new Date(),
-        },
-    ]); // Mock data initialization
+    const [userTransactions, setUserTransactions] = useState([]); // Mock data initialization
 
     const { isLoaded, isSignedIn, user } = useUser();
     const router = useRouter();
 
-    const [totalBudget, setTotalBudget] = useState(0.0);
+    const [total, setTotal] = useState(0.0);
+    const [category, setCategory] = useState('');
 
-    useEffect(() => {
-        const fetchTransactions = async () => {
-            if (isLoaded && isSignedIn && user) {
-                try {
-                    const userId = user.id;
+    const [transaction, setTransaction] = useState('');
+    const [amount, setAmount] = useState(0.0);
 
-                    // Reference to the specific category's transactions collection
-                    const transactionsRef = collection(db, 'users', userId, 'budgetCategories', 'categoryId', 'transactions');
-                    const q = query(transactionsRef);
-                    const querySnapshot = await getDocs(q);
 
-                    const transactions = [];
-                    let total = 0.0;
+    const searchParams = useSearchParams() 
+    const search = searchParams.get('id');
+    
 
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        transactions.push({
-                            ...data,
-                            id: doc.id, // include the document ID for future reference
-                        });
-                        total += data.amount; // Assuming `amount` is a field in your transaction documents
-                    });
+    if (isLoaded && !isSignedIn) {
+        router.push('/');
+      }
 
-                    setUserTransactions(transactions);
-                    setTotalBudget(total);
-                } catch (error) {
-                    console.error('Error fetching transactions:', error);
-                }
-            } else {
-                router.push('/login'); // Adjust the route as necessary
+      useEffect(() => {
+        async function getTransactions() {
+            if (!search || !user) {
+                return
             }
-        };
 
-        fetchTransactions();
-    }, [isLoaded, isSignedIn, user, router]);
 
-    // redirects the user to the home page when logged out
+
+
+            if (!search || !user) return
+            setCategory(search)  // Store the collection name in state
+
+
+            const colRef = collection(doc(collection(db, 'users'), user.id), search)
+            const docs = await getDocs(colRef)
+            const transactions = []
+            let total = 0.0;
+            docs.forEach((doc) => {
+                transactions.push({ id: doc.id, ...doc.data() })
+                total+=doc.data().amount;
+            })
+
+          
+            setUserTransactions(transactions)
+            setTotal(total);
+
+        }
+        getTransactions()
+    }, [search, user])
+
+   
+    const getTransactions =  async () => {
+        if (!search || !user) return;
+    
+        setCategory(search); // Store the collection name in state
+    
+        try {
+            const colRef = collection(doc(collection(db, 'users'), user.id), search);
+            const docs = await getDocs(colRef);
+            const transactions = [];
+            let total = 0.0;
+    
+            docs.forEach((doc) => {
+                const data = doc.data();
+                transactions.push({ id: doc.id, ...data });
+                total += data.amount; // Assuming `amount` is a field in your transaction documents
+            });
+    
+            setUserTransactions(transactions);
+            setTotal(total);
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+        }
+    };
+
+   //ed out
     if (isLoaded && !isSignedIn) {
         router.push('/');
     }
 
-    // add a new transaction to a specific category
-    const addTransaction = async (userId, categoryId, transaction) => {
-        const batch = writeBatch(db);
+    
 
-        const userDocRef = doc(db, 'users', userId);
-        const categoryDocRef = doc(collection(userDocRef, 'budgetCategories'), categoryId);
-        const transactionsRef = collection(categoryDocRef, 'transactions');
+    const addTransaction = async (userId, categoryName, transaction) => {
+        setTransaction('');
+        setAmount(0.0);
 
-        // Add the transaction
-        const transactionDocRef = doc(transactionsRef);
-        batch.set(transactionDocRef, transaction);
-
-        // Update the category total
-        const categorySnap = await getDoc(categoryDocRef);
-        const categoryData = categorySnap.data();
-        const newTotal = (categoryData.total || 0) + transaction.amount;
-        batch.update(categoryDocRef, { total: newTotal });
-
-        // Update the user's total budget
-        const userSnap = await getDoc(userDocRef);
-        const userData = userSnap.data();
-        const newUserTotal = (userData.totalBudget || 0) + transaction.amount;
-        batch.update(userDocRef, { totalBudget: newUserTotal });
-
-        await batch.commit();
-    };
-
-    // delete a specific transaction
-    const deleteTransaction = async (userId, categoryId, transactionId) => {
-        const batch = writeBatch(db);
-
-        const userDocRef = doc(db, 'users', userId);
-        const categoryDocRef = doc(collection(userDocRef, 'budgetCategories'), categoryId);
-        const transactionDocRef = doc(collection(categoryDocRef, 'transactions'), transactionId);
-
-        // Get the transaction details
-        const transactionSnap = await getDoc(transactionDocRef);
-        const transactionData = transactionSnap.data();
-
-        if (transactionData) {
-            // Remove the transaction
-            batch.delete(transactionDocRef);
-
-            // Update the category total
-            batch.update(categoryDocRef, {
-                total: increment(-transactionData.amount),
-            });
-
-            // Update the user's total budget
-            batch.update(userDocRef, {
-                totalBudget: increment(-transactionData.amount),
-            });
-
-            await batch.commit();
-        } else {
-            console.error('Transaction not found');
+        alert(user.emailAddresses);
+        if (!categoryName.trim()) {
+          alert('Please enter the category name.');
+          return;
         }
-    };
-
-    // update a transaction
-    const updateTransaction = async (userId, categoryId, transactionId, updatedTransaction) => {
-        const batch = writeBatch(db);
-
-        const userDocRef = doc(db, 'users', userId);
-        const categoryDocRef = doc(collection(userDocRef, 'budgetCategories'), categoryId);
-        const transactionDocRef = doc(collection(categoryDocRef, 'transactions'), transactionId);
-
-        // Get the old transaction details
-        const transactionSnap = await getDoc(transactionDocRef);
-        const oldTransactionData = transactionSnap.data();
-
-        if (oldTransactionData) {
-            const oldAmount = oldTransactionData.amount;
-            const newAmount = updatedTransaction.amount;
-
-            // Update the transaction document with new details
-            batch.update(transactionDocRef, updatedTransaction);
-
-            // Adjust the category total
-            batch.update(categoryDocRef, {
-                total: increment(newAmount - oldAmount), // Adjust category total
-            });
-
-            // Adjust the user's total budget
-            batch.update(userDocRef, {
-                totalBudget: increment(newAmount - oldAmount), // Adjust user total budget
-            });
-
-            await batch.commit();
-        } else {
-            console.error('Transaction not found');
+        if (!userId) {
+          console.error('User ID is not defined.');
+          return;
         }
+        if (!transaction || !transaction.name || !transaction.amount || !transaction.createdAt) {
+          console.error('Transaction data is incomplete.');
+          return;
+        }
+      
+        try {
+          const batch = writeBatch(db);
+          const userDocRef = doc(collection(db, 'users'), userId);
+      
+          const docSnap = await getDoc(userDocRef);
+      
+          if (docSnap.exists()) {
+            const categoryCollection = docSnap.data().budgetCategories || [];
+      
+            if (categoryCollection.find((category) => category.name === categoryName)) {
+              const columnRef = collection(userDocRef, categoryName);
+      
+              // Check if a transaction with the same name already exists
+              const querySnapshot = await getDocs(columnRef);
+              let existingTransactionDocRef = null;
+              let updatedTotal = 0.0;
+      
+              querySnapshot.forEach((doc) => {
+                const transactionData = doc.data();
+                if (transactionData.name === transaction.name) {
+                  existingTransactionDocRef = doc.ref;
+                  // Increment the amount of the existing transaction
+                  batch.update(existingTransactionDocRef, {
+                    amount: transactionData.amount + transaction.amount,
+                  });
+                } else {
+                  // Accumulate the total amount for recalculation
+                  updatedTotal += transactionData.amount;
+                }
+              });
+      
+              if (!existingTransactionDocRef) {
+                // Create a new transaction if none exists with the same name
+                const newTransactionRef = doc(columnRef);
+                batch.set(newTransactionRef, transaction);
+              }
+      
+              // Recalculate total expenditure
+              updatedTotal += transaction.amount; // Include new or updated transaction amount
+      
+              // Update the total expenditure in the category
+              const updatedCategories = categoryCollection.map((cat) =>
+                cat.name === categoryName ? { ...cat, expenditure: updatedTotal } : cat
+              );
+      
+              batch.set(userDocRef, { budgetCategories: updatedCategories }, { merge: true });
+      
+              // Commit the batch to Firestore
+              await batch.commit();
+      
+              // Fetch updated categories and update the UI
+              await getTransactions();
+      
+              console.log('Transaction successfully added or updated.');
+            } else {
+              console.log("Category not found.");
+            }
+          } 
+        } catch (error) {
+          console.error('Error adding transaction:', error);
+        }
+      };
+      
+
+          
+      
+      const deleteTransaction = async (userId, categoryName, transaction, location) => {
+        if (!userId) {
+          console.error('User ID is not defined.');
+          return;
+        }
+        if (!categoryName) {
+          console.error('Category Name is not defined.');
+          return;
+        }
+        if (!transaction || !transaction.name) {
+          console.error('Transaction data is incomplete.');
+          return;
+        }
+
+        let confirmation = false;
+        if (location == "updated"){
+            alert("Transaction successfully updated");
+            confirmation = true;
+          }
+          else{
+            confirmation = window.confirm("Are you sure you want to delete this?");
+            
+        }
+        if (confirmation){
+            try {
+                const batch = writeBatch(db);
+                const userDocRef = doc(collection(db, 'users'), userId);
+            
+                const docSnap = await getDoc(userDocRef);
+            
+                if (docSnap.exists()) {
+                  const categoryCollection = docSnap.data().budgetCategories || [];
+            
+                  // Check if the category exists
+                  const category = categoryCollection.find((cat) => cat.name === categoryName);
+                  if (category) {
+                    const columnRef = collection(userDocRef, categoryName);
+            
+                    // Find and delete the transaction by its name
+                    const querySnapshot = await getDocs(columnRef);
+                    let updatedTotal = 0.0;
+            
+                    querySnapshot.forEach((doc) => {
+                      const transactionData = doc.data();
+                      if (transactionData.name === transaction.name) {
+                        batch.delete(doc.ref);
+                      } else {
+                        // Accumulate the total amount for recalculation
+                        updatedTotal += transactionData.amount;
+                      }
+                    });
+            
+                    // Recalculate total expenditure
+                    const updatedCategories = categoryCollection.map((cat) =>
+                      cat.name === categoryName ? { ...cat, expenditure: updatedTotal } : cat
+                    );
+            
+                    // Update the user's budgetCategories with the new total
+                    batch.set(userDocRef, { budgetCategories: updatedCategories }, { merge: true });
+            
+                    // Commit the batch to Firestore
+                    await batch.commit();
+            
+                    // Fetch updated categories and update the UI
+                    await getTransactions();
+            
+                    console.log('Transaction successfully deleted.');
+
+                    if (location == "main"){
+                        alert("Transaction sucessfully deleted")
+                    }
+                   
+                  } else {
+                    console.log("Category not found.");
+                  }
+                } 
+              } catch (error) {
+                console.error('Error deleting transaction:', error);
+              }
+            };
+
+          
+        }
+       
+      
+    const updateTransaction = async (userId, categoryId, updatedTransaction) => {
+        if (!userId) {
+            console.error('User ID is not defined.');
+            return;
+          }
+          if (!categoryId) {
+            console.error('Category Name is not defined.');
+            return;
+          }
+          if (!updatedTransaction) {
+            console.error('Transaction data is incomplete.');
+            return;
+          
+        }
+
+        deleteTransaction(userId, categoryId, updateTransaction, 'updated');
+        addTransaction(userId, categoryId);
+
     };
 
     return (
-        <div>
-            <Breadcrumb className="hidden md:flex">
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="#">Dashboard</Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link href="#">Products</Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>All Products</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <Sidebar />
+        <div className="flex flex-col">
+          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+            <MobileNav />
+            <div className="w-full flex-1">
+              <form>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search products..."
+                    className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
+                  />
+                </div>
+              </form>
+            </div>
+            <UserButton />
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
 
-            <h1>Total Budget for Category: ${totalBudget.toFixed(2)}</h1>
-            {/* Render userTransactions here */}
-            <ul>
-                {userTransactions.map((transaction) => (
-                    <li key={transaction.id}>
-                        {transaction.name} - ${transaction.amount} (Date: {transaction.dateCreated.toLocaleDateString()})
-                    </li>
-                ))}
-            </ul>
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold md:text-2xl ">Total expenditure for {category}:<span className='text-green-500 text-5xl pl-10'>${total}</span> </h1>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button onClick={() =>{ setTransaction(''); setAmount(0.0)}}>Add New Transaction</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Transaction</DialogTitle>
+                  <DialogDescription>Add a new transaction for this category</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="transaction" className="text-right">Transaction Name: </Label>
+                    <Input
+                      id="transaction"
+                      className="col-span-3"
+                      value={transaction}
+                      onChange={(e) => setTransaction(e.target.value)}
+                      placeholder="Enter transaction name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="amount" className="text-right">Total Budget</Label>
+                    <Input
+                      id="amount"
+                      className="col-span-3"
+                      value={amount}
+                      onChange={(e) => setAmount(parseFloat(e.target.value))} 
+                      placeholder="Enter amout"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" onClick={() => addTransaction(user.id, category, {name: transaction, amount: amount, createdAt: new Date()})}>Add transaction</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+                
 
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="hidden w-[100px] sm:table-cell">
-                            <span className="sr-only">Image</span>
-                        </TableHead>
-                        <TableHead>Transaction Name</TableHead>
-                        <TableHead>Budget amount </TableHead>
-                        <TableHead className="hidden md:table-cell">Created at</TableHead>
-                        <TableHead>
-                            <span className="sr-only">Actions</span>
-                        </TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {userTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                            <TableCell className="font-medium">{transaction.name}</TableCell>
-                            <TableCell className="hidden md:table-cell">${transaction.amount}</TableCell>
-                            <TableCell>
-                                <Badge variant="outline">(Date: {transaction.dateCreated.toLocaleDateString()})</Badge>
-                            </TableCell>
-                            <TableCell>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                            <span className="sr-only">Toggle menu</span>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                                        <DropdownMenuItem>Delete</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+          <Table>
+    <TableHeader>
+        <TableRow>
+            <TableHead className="hidden w-[100px] sm:table-cell">
+                <span className="sr-only">Image</span>
+            </TableHead>
+            <TableHead>Transaction Name</TableHead>
+            <TableHead>Budget Amount</TableHead>
+            <TableHead className="hidden md:table-cell">Created At</TableHead>
+            <TableHead>Actions</TableHead>
+        </TableRow>
+    </TableHeader>
+    <TableBody>
+        {userTransactions.map((transaction) => (
+            <TableRow key={transaction.id}>
+                <TableCell className="hidden w-[100px] sm:table-cell">
+                    {/* Placeholder for Image if needed */}
+                </TableCell>
+                <TableCell className="font-medium">{transaction.name}</TableCell>
+                <TableCell>${transaction.amount}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                    {new Date(transaction.createdAt.seconds * 1000).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem> 
+  <Dialog>
+    <DialogTrigger asChild>
+      <Button  className="w-full"
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent dropdown from closing
+          setTransaction(transaction.name); 
+          setAmount(transaction.amount);
+        }}
+      >
+        Edit
+      </Button>
+    </DialogTrigger>
+
+    <DialogContent className="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Edit Transaction</DialogTitle>
+        <DialogDescription>Update the transaction for this category</DialogDescription>
+      </DialogHeader>
+
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="transaction" className="text-right">Transaction Name:</Label>
+          <Input
+            id="transaction"
+            className="col-span-3"
+            value={transaction}
+            onChange={(e) => setTransaction(e.target.value)}
+            placeholder="Enter transaction name"
+          />
         </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="amount" className="text-right">Total Budget</Label>
+          <Input
+            id="amount"
+            className="col-span-3"
+            value={amount}
+            onChange={(e) => setAmount(parseFloat(e.target.value))}
+            placeholder="Enter amount"
+          />
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button type="button" onClick={() => { updateTransaction(user.id, category, { name: transaction, amount: amount, createdAt: new Date() }) }}>
+          Edit transaction
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+</DropdownMenuItem>
+
+                            <DropdownMenuItem> <Button className="w-full" onClick={()=>{deleteTransaction(user.id,category,transaction, "main")}}> Delete </Button></DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </TableCell>
+            </TableRow>
+        ))}
+    </TableBody>
+</Table>
+
+        </main>
+      </div>
+    </div>
+           
     );
 }
