@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SmartBudget
 
-## Getting Started
+SmartBudget is a modern budgeting application designed to help users track and manage their finances with ease. It offers various features to help users stay on top of their financial goals and make informed investment decisions.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. **Budget Management with Smart Notifications**  
+   - Set budgets for different categories.
+   - Receive smart notifications when exceeding the budget in any category.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Personalized Financial Advising**  
+   - Get financial advice based on your budgets and financial data to optimize your spending and saving habits.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+3. **Investment Recommendations**  
+   - Receive tailored investment recommendations based on your financial information and goals.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+4. **Bank Account Integration**  
+   - Connect your bank accounts to fetch and categorize transactions automatically.
+   - Get real-time insights for more accurate recommendations.
 
-## Learn More
+## Technologies Used
+- **Next.js** for the frontend and server.
+- **Clerk** for authentication.
+- **Firebase** for data base storage and backend serverless functions.
+- - **open** for financial decision analysis, advising, and investment recommendations.
+- **Plaid API** for bank account integration - still working on this.
+- **Tailwind CSS** for styling.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## How to Run the Project
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Faith-Nchang/SmartBudget.git
