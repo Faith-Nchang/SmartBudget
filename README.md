@@ -12,18 +12,13 @@ SmartBudget is a modern budgeting application designed to help users track and m
    - Get financial advice based on your budgets and financial data to optimize your spending and saving habits.
 
 3. **Investment Recommendations**  
-   - Receive tailored investment recommendations based on your financial information and goals.
-
-4. **Bank Account Integration**  
-   - Connect your bank accounts to fetch and categorize transactions automatically.
-   - Get real-time insights for more accurate recommendations.
+   - AI-Powered Receive tailored investment recommendations based on your financial information and goals.
 
 ## Technologies Used
 - **Next.js** for the front end and server.
 - **Clerk** for authentication.
 - **Firebase** is for database storage and backend serverless functions.
 - **openai** for financial decision analysis, advising, and investment recommendations.
-- **Plaid API** for bank account integration - still working on this.
 - **Tailwind CSS** for styling.
 
 ## How to Run the Project
